@@ -1,0 +1,270 @@
+body {
+  -webkit-print-color-adjust: exact;
+  background: rgb(204,204,204);
+}
+
+*{
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+
+div[size="A4"]{
+  width: 210mm; 
+  min-height: 297mm;
+}
+
+div[size="A3"]{
+  width: 297mm;
+  min-height: 420mm;
+}
+
+div[size="A5"]{
+  width: 148mm;
+  min-height: 210mm; 
+}
+
+div[size="A6"]{
+  width: 105mm;
+  min-height: 148mm; 
+}
+
+div[size="A7"]{
+  width: 74mm;
+  min-height: 105mm; 
+}
+
+div[size="A4"] .footer{
+  width: 210mm; 
+}
+
+div[size="A4"] .footer .lfooter{
+  width: 2mm; 
+}
+
+div[size="A4"] .footer .rfooter{
+  width: 175.7mm; 
+}
+
+div[size="A4"] .footer #containerQrcode{
+  padding:5px; 
+  width: 30mm; 
+}
+
+div[size="A3"] .footer{
+  width: 297mm;
+}
+
+div[size="A5"] .footer{
+  width: 148mm;
+}
+
+div[size="A6"] .footer{
+  width: 105mm;
+}
+
+div[size="A7"] .footer{
+  width: 74mm;
+}
+
+.page{
+  background: white;
+  display: block;
+  margin: 5mm auto;
+  box-shadow:0 0 0.5cm rgba(0,0,0,0.5);
+  position: relative;
+  font-size: 12pt;
+  font-family:"Times New Roman";
+}
+
+.page .head{
+  padding: 10px 20px;
+}
+
+.page .content{
+  padding: 10px 20px 130px 20px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.wrap{
+  padding: 1cm;
+  min-height: 257mm;
+  position: relative;
+}
+
+.footer{
+  position: absolute;
+  bottom: 0;
+}
+
+.noprint{
+  display: block;
+  height:65px; 
+}
+
+.lfooter, .rfooter{
+  display: inline-block;
+  border-bottom:60px solid #267199;
+  position: relative;
+}
+
+.control{
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.content:after, .header:after, .footer:after{
+  content: "";
+  display: block;
+  clear: both;
+}
+
+/*.rfooter{
+  width:673.5px;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0){ 
+  .rfooter{ width:667px; } 
+}*/
+
+#containerQrcode{
+  display: inline-block; 
+  height: 100px;
+}
+
+.contraProva{
+  padding: 0 10px;
+  font-size: 16px;
+  position: absolute;
+  bottom: -58px;
+}
+
+.contraProva .clabel{
+  text-transform:uppercase; 
+  text-align: left; 
+  color: #faf7f7;
+}
+.contraProva .val{
+  color: #000; 
+  font-size: 18px;
+}
+
+.userprint{
+  font-size: 11px; 
+  color: #faf7f7;
+  right: 5px;
+  bottom: -55px;
+  position: absolute;
+}
+
+.userprint span{
+  padding: 0 5px
+}
+
+table{
+  width: 100%;
+  border-top:1px solid #ddd;
+  border-right:1px solid #ddd;
+  border-spacing: 0;
+}
+
+table tbody tr:nth-of-type(odd) {
+    background-color: #fbfcfc;
+}
+
+table th, table td{
+  padding: 8px 5px;
+  vertical-align: middle;
+  border-bottom: 1px solid #ddd;
+  border-left: 1px solid #ddd;
+  border-spacing: 0;
+  width: auto;
+}
+
+table.clean, 
+table.clean thead tr th, 
+table.clean tbody tr td{
+  border:none;
+}
+
+
+/*.fixed{
+  position: absolute;
+  left: 1cm;
+  right: 1cm;
+  border: 1px solid #ddd;
+  min-height: 80px;
+}
+
+.content{
+  margin:3cm 0;
+}
+
+.head{
+  top: 1cm;
+}
+
+.footer{
+  bottom: 1cm;
+}*/
+
+p{
+  line-height: 18px;
+  margin: 3px 0;
+}
+
+@media print {
+  html, body {
+    -webkit-print-color-adjust:exact;
+    margin: 0;
+    padding: 0; 
+    font: 14pt "Times New Roman";       
+  }
+
+ /* .fixed{
+    position: fixed;
+  }*/
+
+  table{
+    width: 100%;
+  }
+
+  .page{
+    margin: 0;
+    border: initial;
+    border-radius: initial;
+    width: initial;
+    min-height: initial;
+    box-shadow: initial;
+    background: initial;
+    page-break-after: always;
+    page-break-before: always;
+  }
+
+  .page .head{
+    padding: 10px 20px;
+  }
+
+  .page .content{
+    padding: 10px 20px 130px 20px;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .wrap{
+    min-height: initial;
+  }
+
+  p a {
+    word-wrap: break-word;
+  }
+  a:link:after, a:visited:after { 
+    content: "(" attr(href) ") ";
+  }
+  a:after, a[href^="javascript:"]:after, a[href^="#"]:after { 
+    content: ""; 
+  }
+}
+
