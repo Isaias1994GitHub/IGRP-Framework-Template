@@ -1,4 +1,5 @@
 var GENERATOR = function(genparams){
+	
 	var GEN                = this;
 	
 	var declaredContainers = [];
@@ -20,6 +21,8 @@ var GENERATOR = function(genparams){
 	var viewChangeEvents = [];
 
 	var xslTmplPath = path+'/xsl/tmpl/';
+
+	GEN.params 			 = genparams;
 	
 	GEN.svApplet      	 = null;
 
@@ -90,7 +93,7 @@ var GENERATOR = function(genparams){
 		},
 
 		valid : function(tag,object){
-			console.log(object)
+			//console.log(object)
 			var r = true,
 
 				t = object.genType,
@@ -527,18 +530,25 @@ var GENERATOR = function(genparams){
 	GEN.removeContainer = function(id){
 		
 		for(var x = 0; x < CONTAINERS.length; x++){
+			
 			var container = CONTAINERS[x];
 			
 			if(container.id == id){
+
 				var idx = CONTAINERS.indexOf(container);
+
 				var column = $(container.holder.parents('.gen-column')[0]);
+
 				if(idx > -1){
 
 					if(container.contents){
+
 						var contentsContainers = container.holder.find('.gen-container-holder');
 	
 						$.each(contentsContainers,function(i,c){
+					   		
 					   		var cId   = $(c).attr('id');
+
 					   		var cType = $(c).attr('type');
 
 					   		if(cId) GEN.removeContainer(cId);
@@ -546,8 +556,16 @@ var GENERATOR = function(genparams){
 					    });
 					}
 
+					container.GET.fields().forEach(function(f){
+
+						container.removeField(f.id,false)
+
+					});
+
 					container.onRemove();
-					CONTAINERS.splice(idx,1);					
+
+					CONTAINERS.splice(idx,1);
+
 					container.holder.parent().remove();
 
 					GEN.checkColumnComponents(column);
@@ -1439,8 +1457,46 @@ var GENERATOR = function(genparams){
 		var rtn = [];
 		CONTAINERS.forEach(function(c){
 			rtn = rtn.concat(c.GET.fields())
+
 		});
 		return rtn;
+	};
+
+	GEN.getAllFieldsAndMenus = function(){
+		
+		var rtn = [];
+
+		CONTAINERS.forEach(function(c){
+
+			rtn = rtn.concat(c.GET.fields())
+			
+			if(c.contextMenu)
+
+				rtn = rtn.concat(c.contextMenu.getFields())
+		});
+
+		return rtn;
+	};
+
+	GEN.getFieldByTag = function(tag){
+		
+		var fields = GEN.getAllFieldsAndMenus(),
+
+			rtn    = null;
+
+		for(var i = 0; i < fields.length; i++){
+			
+			var field = fields[i];
+
+			if(field.GET.tag() == tag){
+				rtn = field;
+				break;
+			}
+
+		}
+
+		return rtn;
+
 	}
 
 	GEN.getFieldByAttr = function(attr,value){
@@ -1453,6 +1509,24 @@ var GENERATOR = function(genparams){
 			}
 		}
 		return rtn;
+	}
+
+	GEN.getFieldsPreservedCodes = function(mode,part){
+
+		var rtn = [];
+
+		GEN.getAllFieldsAndMenus().forEach(function(f){
+
+			if(f.server.preserved[mode] && f.server.preserved[mode][part]){
+				
+				rtn.push(f);
+
+			}
+
+		});
+
+		return rtn;
+
 	}
 
 	GEN.getFieldsIncludes = function(){
@@ -1496,14 +1570,17 @@ var GENERATOR = function(genparams){
 		GEN.getContainers().forEach(function(c){
 			var type = c.type;
 			if(c.includes && ( c.includes.css || c.includes.js || c.includes.xsl) ){
-				rtn[type] = {
-					xsl:[],
-					css:[],
-					js :[]
-				}
+				if(!rtn[type])
+					rtn[type] = {
+						xsl:[],
+						css:[],
+						js :[]
+					}
+
 				for(i in c.includes){
 					rtn[type][i] = $.merge(rtn[type][i], c.includes[i]);
 				}
+
 			}
 		});
 
@@ -1645,10 +1722,38 @@ var GENERATOR = function(genparams){
 					setCustomCSStoView();
 				}
 
+				if(GEN.files.css[0]){
+					
+					GEN.files.css.forEach(function(f){
+
+						GEN.includeToHead({
+							type : 'css',
+							path : GEN.getIncludeURL(f.file)
+						});
+
+					});
+
+				}
+
 				if(json.js){
 					GEN.jsEditor.setValue(json.js);
 					setCustomJStoView();
 				}
+
+				if(GEN.files.js[0]){
+					
+					GEN.files.js.forEach(function(f){
+
+						GEN.includeToHead({
+							type : 'js',
+							path : GEN.getIncludeURL(f.file)
+						});
+
+					});
+					
+				}
+
+
 				//js value
 				//set here
 				//console.log(json.rows);
@@ -1663,7 +1768,7 @@ var GENERATOR = function(genparams){
 						
 						$(window).resize();
 						
-						done();
+						GEN.done();
 						
 						_import(false);
 					}
@@ -1672,7 +1777,7 @@ var GENERATOR = function(genparams){
 			}else{
 
 				var startCb = function(){
-					done();
+					GEN.done();
 
 					_import(false);
 
@@ -1807,8 +1912,7 @@ var GENERATOR = function(genparams){
 		if(GEN.files.xsl[0]){
 
 			GEN.files.xsl.forEach(function(x){
-
-				rtn+= '<xsl:include href="'+x.file+'"/>';
+				rtn+= '<xsl:include href="'+iPath+'/xsl/tmpl/'+x.file+'?v='+_getDate()+'"/>';
 			});
 		}
 
@@ -1875,10 +1979,11 @@ var GENERATOR = function(genparams){
 		if(!relative && p.path.indexOf('{$path}') == 0)
 			viewLink = path+p.path.split('{$path}').pop();
 
+		if(viewLink.indexOf('{$path}') >= 0)
+			viewLink = viewLink.replace('{$path}', path);
 
 		var viewInclude = p.type == 'css' ? '<link media="'+media+'" rel="stylesheet" type="text/css" href="'+viewLink+'?v='+_getDate()+'"/>' :
 					      p.type == 'js'  ? '<script '+charset+' type="text/javascript" src="'+viewLink+'?v='+_getDate()+'"></script>' : null;
-
 
 		//include css to the GEN VIEW
 		if(!GEN.viewFileIncluded(viewLink,p.type)) 
@@ -2103,9 +2208,7 @@ var GENERATOR = function(genparams){
 					if( GEN.SETTINGS.html && GEN.SETTINGS.package ){
 						setPLSQLValue({
 							callback:callback
-						});
-						//console.log($('#gen-page-setts-ctrl'))
-						
+						});						
 					}
 						
 					else{
@@ -2116,10 +2219,17 @@ var GENERATOR = function(genparams){
 				case 'gen-java':
 					
 					if( GEN.SETTINGS.html && GEN.SETTINGS.package ){
-						setPLSQLValue({
+						//callback();
+
+						genUICode({
+							mode    : 'java',
+							callback:callback
+
+						})
+						/*setPLSQLValue({
 							rel:'gen-java',
 							callback:callback
-						});
+						});*/
 						//console.log($('#gen-page-setts-ctrl'))
 						
 					}
@@ -2134,7 +2244,7 @@ var GENERATOR = function(genparams){
 					callback();
 			}
 			
-			resizeCodeMirrorArea( );
+			GEN.resizeCodeMirrorArea( );
 
 			GEN.SETTINGS.hide( );
 			
@@ -2418,11 +2528,8 @@ var GENERATOR = function(genparams){
 
 		$('#gen-page-setts-ctrl').on('click',function(){
 			
-			//var editorName = getActiveEditorName() || 'plsql';
-
-			//GEN.SETTINGS.gentype = editorName;
-			
 			openPLSQLSettings();
+
 		});
 
 		$('.gen-page-setter').on('keyup change',function(){
@@ -2449,7 +2556,9 @@ var GENERATOR = function(genparams){
 				var pageXSL = vkbeautify.xml(GEN.getXSL({
 					removeGenAttrs:true
 				}));
-				/*
+
+				console.log( GEN.export() )
+
 				var vParam  =  [
 					{ name:'p_data'    , value: GEN.export() },//json
 					{ name:'p_page_xml', value: pageXML },//xml
@@ -2458,72 +2567,93 @@ var GENERATOR = function(genparams){
 					//{ name:'p_package', value: GEN.SETTINGS.package}//pacote
 				];
 
-				console.log(vParam)
-				
-				console.log(  GEN.export() );
+				GEN.server.compile({
 
-				var vItemId = getPageId();
-				
-				$('body').attr('has-message','false');
-				$('#gen-noif-holder').html('');
-				
-				try{
-					
-					$.IGRP.utils.submitStringAsFile({
-						//pUrl        : 'test.save.xml',
-						pUrl        : vUrl,
-						pMessage    : false,
-						pLoading    : true,
-			         	pParam      : {
-			          		pArrayFiles : vParam,
-				           	pArrayItem  : [
-				           		{name:'p_id_objeto', value:vItemId},
-				           		{name:'p_table_name', value:GEN.SETTINGS.table},
-				           		{name:'p_pkg_html_name', value:GEN.SETTINGS.html},
-				           	]
-				        },
-						pComplete   :function(xml,text,status){
-							//:not(')
-							var msgs = $(xml).find("message[type!='confirm'][type!='debug']");
+					mode : 'java',
 
-							$.each(msgs,function(i,msg){
-								var type = $(msg).attr('type');
-								var text = $(msg).text();
+					then : function(results){
 
-								$.notify({
-									icon: 'fa fa-times',
-									message: text,
-
-								},{
-									type:'success',
-									delay: 8000,
-								});
-
-							});
-						},
-						pError:function(request){
+						results.forEach(function(r){
 							
-							$.notify({
-								icon: 'fa fa-times',
-								message: request.statusText,
+							var name = r.name.toLowerCase();
 
-							},{
-								type:'warning',
-								delay: 8000,
+							vParam.push({
+								name : 'p_'+name,
+								value : r.code
 							});
+						
+						});
+
+						var vItemId = getPageId();
+						
+						$('body').attr('has-message','false');
+
+						$('#gen-noif-holder').html('');
+						
+						try{
+							
+							$.IGRP.utils.submitStringAsFile({
+								//pUrl        : 'test.save.xml',
+								pUrl        : vUrl,
+								pMessage    : false,
+								pLoading    : true,
+					         	pParam      : {
+					          		pArrayFiles : vParam,
+						           	pArrayItem  : [
+						           		{name:'p_id_objeto', value:vItemId},
+						           		{name:'p_table_name', value:GEN.SETTINGS.table},
+						           		{name:'p_pkg_html_name', value:GEN.SETTINGS.html},
+						           		{name:'p_package', value: GEN.SETTINGS.package}
+						           	]
+						        },
+								pComplete   :function(xml,text,status){
+									//:not(')
+									var msgs = $(xml).find("message[type!='confirm'][type!='debug']");
+
+									$.each(msgs,function(i,msg){
+										var type = $(msg).attr('type');
+										var text = $(msg).text();
+
+										$.notify({
+											icon: 'fa fa-times',
+											message: text,
+
+										},{
+											type:'success',
+											delay: 8000,
+										});
+
+									});
+								},
+								pError:function(request){
+									
+									$.notify({
+										icon: 'fa fa-times',
+										message: request.statusText,
+
+									},{
+										type:'warning',
+										delay: 8000,
+									});
+								}
+					        });
+						}catch(err){
+							console.log(err);
 						}
-			        });
-				}catch(err){
-					console.log(err);
-				}
-				*/
-				GEN.getJava(function(javaStr){
+
+					}
+
+				});
+
+
+				/*GEN.getJava(function(javaStr){
 
 					var vParam  =  [
 						{ name:'p_data'    , value: GEN.export() },//json
 						{ name:'p_page_xml', value: pageXML },//xml
 						{ name:'p_page_xsl', value: pageXSL },//xsl
 						{ name:'p_page_java',value:javaStr},//java
+						//{ name:'p_package', value: GEN.SETTINGS.package}//pacote
 					];
 
 					console.log(vParam)
@@ -2548,7 +2678,6 @@ var GENERATOR = function(genparams){
 					           		{name:'p_id_objeto', value:vItemId},
 					           		{name:'p_table_name', value:GEN.SETTINGS.table},
 					           		{name:'p_pkg_html_name', value:GEN.SETTINGS.html},
-									{ name:'p_package', value: GEN.SETTINGS.package}//pacote
 					           	]
 					        },
 							pComplete   :function(xml,text,status){
@@ -2586,7 +2715,7 @@ var GENERATOR = function(genparams){
 						console.log(err);
 					}
 
-				});
+				});*/
 
 				
 			}else{
@@ -2726,7 +2855,7 @@ var GENERATOR = function(genparams){
       	});
 
       	$(window).resize(function(){
-      		resizeCodeMirrorArea();
+      		GEN.resizeCodeMirrorArea();
       	});
 
 		/*sort containers*/
@@ -2751,19 +2880,26 @@ var GENERATOR = function(genparams){
 	}			
 
 	var getConfigData = function(){
+
 		if(genparams.configURL){
+			
 			$.ajax({
+
 				url:genparams.configURL,
+
 				success:function(configData){
+
 					configDataSet = true;
 					
 					GEN.UTILS = typeof configData == 'string' ? $.parseJSON(configData) : configData;
 
+					console.log(GEN.UTILS)
 					//loadDomains();
 
 					loadPageContents({ source: genparams.dataSrc });
 				}
-			})
+			});
+
 		}
 
 	}
@@ -2789,7 +2925,7 @@ var GENERATOR = function(genparams){
 
 				configPLSQLEditor();
 
-				configJAVAEditor();
+				//configJAVAEditor();
 
 				baseXslSet = true;
 
@@ -2815,6 +2951,7 @@ var GENERATOR = function(genparams){
 
 
 	var loadDomains = function(cback){
+
 		$.ajax({
 			url:GEN.UTILS.link_domains,
 			success:function(d){ 
@@ -2905,7 +3042,7 @@ var GENERATOR = function(genparams){
 
 	var initBlank = function(){
 		GEN.layout.addRow({index:0});
-		done();
+		GEN.done();
 	}
 
 	var loadData = function(url,callback){
@@ -2915,7 +3052,7 @@ var GENERATOR = function(genparams){
 			url:url,
 			//cache:false,
 			success:function(d,s,r){
-				var contentType = r.getResponseHeader('Content-Type');
+				var contentType = r.getResponseHeader('content-type') || 'json';
 				var type = contentType.split(';')[0];
 
 				if(type.indexOf('xml') != -1)
@@ -2983,27 +3120,35 @@ var GENERATOR = function(genparams){
 			}
 		}
 
+
 		GEN.SETTINGS = {
 			//title   : '',
 			instance       : '',
 			table          : '',
 			package        : '',
 			html           : '',
-			gentype        : '',
+			gentype        : $('.gen-page-setter[rel="gentype"] option[selected]').val() || 'java', 
 			replace        : false,
 			label          : false,
 			biztalk        : false,
 			subversionpath : '',
+			
 			GET     : function(attr){
 				return GEN.SETTINGS.hasOwnProperty(attr) ? GEN.SETTINGS[attr] : '';
 			},
+
 			SET     : function(attr,val){
+			
 				if(GEN.SETTINGS.hasOwnProperty(attr))
+
 					GEN.SETTINGS[attr] = val;
 
 				if(typeof val == 'boolean')
+
 					$('.gen-page-setter[rel="'+attr+'"]').prop('checked', val)
+
 				else
+
 					$('.gen-page-setter[rel="'+attr+'"]').val(val);
 
 				GEN.SETTINGS.checkBtn();
@@ -3076,8 +3221,8 @@ var GENERATOR = function(genparams){
 
 	}
 
-	var resizeCodeMirrorArea = function(){
-		$('.gen-viewers .cm-s-default').height( $(window).height()-76);
+	GEN.resizeCodeMirrorArea = function(){
+		$('.gen-viewers .cm-s-default, .gen-editor-toolsbar').height( $(window).height()-86);	
 	}
 
 	var codeEditorView = function(o){
@@ -3211,9 +3356,8 @@ var GENERATOR = function(genparams){
 
 			service  = GEN.proprieties.service ? GEN.proprieties.service : {};
 
-		
-
 		GEN.service.set(GEN);
+
 		objServ.append(GEN.proprieties.service.setter()[0]);
 		
 		if(service.code){
@@ -3238,12 +3382,16 @@ var GENERATOR = function(genparams){
 		$.each($('.gen-page-setter'),function(i,s){
 			
 			var setter = $(s),
+
 				rel    = setter.attr('rel');
 
 			if(setter.attr('type') == 'checkbox')
+
 				setter.prop('checked',GEN.SETTINGS[rel]);
+
 			else
-				setter.val(GEN.SETTINGS[rel]);
+
+				setter.val(GEN.SETTINGS[rel]);		
 		
 		});
 
@@ -3256,7 +3404,28 @@ var GENERATOR = function(genparams){
 		return false;
 	}	
 
+	var genUICode = function(params){	
+
+		GEN.server.set(params);
+
+		/*//console.log(params);
+		var server = genparams.server || {},
+
+			codes  = server[params.mode];
+
+		if(codes[0]){
+
+
+
+		}
+
+		params.callback();*/
+
+	}
+
+
 	var setPLSQLValue = function(params){
+
 		var p             = params ? params : {};  
 		var rel           = p.rel ? p.rel : 'gen-plsql';
 		var btnController = p.controller ? p.controller : $(VARS.html.viewsController+'[rel="'+rel+'"]');
@@ -3280,7 +3449,7 @@ var GENERATOR = function(genparams){
 		if(isIE)
 			replaceSpace( $(plsqlXML) );
 
-		waiting();
+		GEN.waiting();
 
 		$('<div/>').XMLTransform({
 			xml         : plsqlXML,
@@ -3328,7 +3497,7 @@ var GENERATOR = function(genparams){
 
 					codeEditorView(true);
 
-					done();
+					GEN.done();
 
 					if(p.callback) p.callback(content);
 
@@ -3488,16 +3657,51 @@ var GENERATOR = function(genparams){
 	}
 
 	var configJAVAEditor = function(){
+
+		CodeMirror.commands.autocomplete = function(cm) {
+	        CodeMirror.showHint(cm, CodeMirror.hint.anyword); 
+	    };
 		/*get editor*/
         GEN.javaEditor = CodeMirror($('#gen-java-view')[0], {
-        	mode: 'text/x-java',
-        	readOnly:true,
-		    lineNumbers: false,
-		    matchBrackets : true
+	    	 lineNumbers: true,
+	   		 matchBrackets: true,
+	   		 autoCloseBrackets: true,
+	   		 mode: "text/x-java",
+	   		 extraKeys: {
+	   		 	"Ctrl-Space": "autocomplete"
+	   		 },
+	   		 autohint: true,
+			 lineWrapping: true
         });
        
         GEN.javaEditor.refresh();
+
         GEN.javaEditor.focus();
+
+        GEN.javaEditor.on('blur',function(cm,change) {
+        	
+        	var m = GEN.server.activeMenu,
+
+        		p = GEN.server.preserved;
+
+        	if(p[m.mode] && p[m.mode][m.part]){
+
+        		 p[m.mode][m.part] = GEN.javaEditor.getValue();
+
+        	};
+
+        	//console.log(GEN.javaEditor.getValue());
+        	//console.log(GEN.server.preserved)
+
+		    /*if ( readOnlyLines.indexOf(change.from.line) ) {
+		        change.cancel();
+		    }*/
+		});
+
+        //var mac = CodeMirror.keyMap.default == CodeMirror.keyMap.macDefault;
+
+      	//CodeMirror.keyMap.default[(mac ? "Cmd" : "Ctrl") + "-Space"] = "autocomplete";
+
 	}
 
 	GEN.getJava = function(callback){
@@ -4142,9 +4346,11 @@ var GENERATOR = function(genparams){
 			if(p.callback) p.callback(GEN.images[p.id]);
 			//element = GEN.images[p.paramName];
 		}else{
+
 			var link = p.paramName ? p.dir+p.paramName : p.dir;
 			$.ajax({
 				url:link,
+				dataType :'json',
 				success:function(data){
 					if(p.callback) p.callback(data);
 					GEN.images[p.id] = data;
@@ -4277,7 +4483,9 @@ var GENERATOR = function(genparams){
 	var getObjectCssFiles = function(incObjects,genType){
 		var rtn = "";
 		var folderGetter = genType == 'container' ? 'getContainerFolder' : 'getFieldFolder';
-		 for(var type in incObjects){
+		
+		for(var type in incObjects){
+
 		 	if( incObjects[type].css[0] ){
 		 		rtn+='<!-- '+type.toUpperCase()+' CSS INCLUDES -->';
 		 		incObjects[type].css.forEach(function(css){
@@ -4317,9 +4525,13 @@ var GENERATOR = function(genparams){
 	var getObjectJSFiles = function(incObjects,genType){
 		var rtn          = "";
 		var folderGetter = genType == 'container' ? 'getContainerFolder' : 'getFieldFolder';
+		
 		for(var type in incObjects){
+
 			if( incObjects[type].js[0] ){
+
 				rtn+='<!-- '+type.toUpperCase()+' JS INCLUDES -->';
+				
 				incObjects[type].js.forEach(function(js){
 					if(js.path){
 						var isExternal = /^https?:\/\//i.test(js.path);
@@ -4344,6 +4556,7 @@ var GENERATOR = function(genparams){
 						}
 					}
 				});
+
 			}
 		}
 		 return rtn;
@@ -4419,6 +4632,9 @@ var GENERATOR = function(genparams){
 			
 		});
 
+		//console.log(GEN.getContainersIncludes());
+		//console.log(GEN.getFieldsIncludes())
+
 		jsIncludes+=getObjectJSFiles(GEN.getContainersIncludes(),'container');
 
 		jsIncludes+=getObjectJSFiles(GEN.getFieldsIncludes(),'field');
@@ -4469,11 +4685,11 @@ var GENERATOR = function(genparams){
 	var start = function(){
 		$('body').addClass('startin');
 	}
-	var done = function(){
+	GEN.done = function(){
 		$('body').removeClass('startin waiting');
 	}
 
-	var waiting = function(){
+	GEN.waiting = function(){
 		$('body').addClass('waiting');
 	}
 	

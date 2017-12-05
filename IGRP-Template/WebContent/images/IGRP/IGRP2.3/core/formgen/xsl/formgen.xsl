@@ -20,7 +20,7 @@
           
         <nav id="igrp-top-nav" class="navbar navbar-fixed-top" bg-color="template">
             <a class="navbar-brand col-sm-3 col-md-2" href="#" >
-                <img src="{$themePath}/{$themeConfigData/logo}"/>
+                <img src="{$path}/assets/img/studioLogoBlank.svg"/>
                 <span>IGRP</span>
             </a>
             <div id="side-bar-ctrl" bg-hover-color="template">
@@ -86,24 +86,20 @@
                     <div class="col-md-2 col-sm-3 sidebar tree-list" id="igrp-sidebar">
                         
                         <ul class="nav nav-tabs col-md-2 col-sm-3 col-xs-12 clearfix" role="tablist" >
+                            
                             <li class="active col-xs-6">
-                                <a href="#gen-list-components" role="tab" data-toggle="tab">
+                                <a class="txt-ellipsis" href="#gen-list-components" role="tab" data-toggle="tab">
                                     <i class="fa fa-cube"></i>
                                     <span class="">Components</span>
                                 </a>
                             </li> 
                             <li class="col-xs-6">
-                                <a href="#gen-list-fields" role="tab" data-toggle="tab">
+                                <a class="txt-ellipsis" href="#gen-list-fields" role="tab" data-toggle="tab">
                                     <i class="fa fa-dot-circle-o"></i>
                                     <span class="">Fields</span>
                                 </a>
                             </li> 
-                            <!-- <li class="col-xs-4">
-                                <a href="#gen-page-properties" role="tab" data-toggle="tab">
-                                    <i class="fa fa-cog"></i>
-                                    <span class="">Settings</span>
-                                </a>
-                            </li>  -->
+                            
                         </ul>
 
                         <div class="tab-content" style="margin:0 -20px;padding:0;border:0">
@@ -233,7 +229,9 @@
                         </div>
 
                         <div id="gen-java" class="gen-viewers">
-                            <div id="gen-java-view" class="gen-code-mirror"></div>
+                            <div class="gen-editor-toolsbar col-sm-2 pull-right" ></div>
+                            <div class="gen-editors-wrapper"></div>
+                            <!-- <div id="gen-java-view" class="gen-code-mirror col-sm-10 custom-size"></div> -->
                         </div>
                         
 
@@ -333,7 +331,7 @@
                                 <div class="col-md-6 form-group" item-name="gentype">
                                     <label>Gen Type</label>
                                     <select name="p_gentype" id="p_gentype" class="select gen-page-setter form-control" rel="gentype">
-                                      <option value="plsql" selected="">Plsql</option>
+                                      <option value="plsql">Plsql</option>
                                       <option value="java" selected="">Java</option>
                                     </select>
                                 </div>
@@ -530,6 +528,12 @@
         <script src="{$path}/core/codemirror/js/addon/hint/show-hint.js"></script>
         <script src="{$path}/core/codemirror/js/addon/hint/sql-hint.js"></script>
         <script src="{$path}/core/codemirror/js/clike.js"></script>
+
+        <!-- ACE EDITOR -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.6/ace.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify.js"></script>
+        <!-- /ACE EDITOR -->
+
         <!--gen-->
         <script>var gPATH = "<xsl:value-of select='$path' />/app/RED";</script>
         <script src="{$path}/core/formgen/js/chance.js"></script>
@@ -555,12 +559,13 @@
         <script src="{$path}/core/formgen/js/GEN.templates.js"></script>
         <script src="{$path}/core/xml2json/jquery.xml2json.js"></script>
         <script src="{$path}/core/formgen/js/GEN.downloadXSL.js"></script>
+
         <script src="{$path}/core/formgen/js/GEN.controller.js"></script>
         <script src="{$path}/core/formgen/js/GEN.containers.js" charset="utf-8"></script>
         <script src="{$path}/core/formgen/js/GEN.fields.js"></script>
         <script src="{$path}/core/formgen/js/GEN.html.js"></script>
 
-
+        <script src="{$path}/core/formgen/js/GEN.server.js"></script>
 
         <script src="{$path}/core/formgen/js/GEN.structures.js"></script>
 
@@ -568,15 +573,52 @@
 
         <script src="{$path}/core/formgen/js/GEN.subversion.js"></script>
         <script src="{$path}/core/formgen/js/vkbeautify.0.99.00.beta.js"></script>
+       
         <script>
 
           this[VARS.name] = new GENERATOR({
+           
             sourcePath : "<xsl:value-of select="$sourcePath"/>",
+            
             dataSrc    : "<xsl:value-of select="rows/content/form/value/page_form"/>",
+            
             imagesURL  : "<xsl:value-of select="rows/content/form/value/link_image"/>",
-            configURL  : "<xsl:value-of select="rows/content/form/value/gen_elements"/>"
+            
+            configURL  : "<xsl:value-of select="rows/content/form/value/gen_elements"/>",
+
+            server     : {
+
+                java : {
+
+                    basePath : '<xsl:value-of select="$path"/>/core/formgen/util/java',
+
+                    codes : [
+						{
+                            name : 'CONTROLLER',
+                            xsl  : '/mvc/XSL_CONTROLLER.xsl'
+                        },
+                        {
+                            name : 'MODEL',
+                            xsl  : '/mvc/XSL_MODEL.xsl'
+                        },
+
+                        {
+                            name : 'VIEW',
+                            xsl  : '/mvc/XSL_VIEW.xsl'
+                        }
+
+                       
+
+                    ]
+
+                }
+
+            }
+
           });
+
           var __GEN = this[VARS.name];
+
         </script>
 
         <script src="{$path}/core/formgen/js/GEN.includeFiles.js"></script>
@@ -613,6 +655,7 @@
                 <div class="col-md-6 form-group" item-name="gen_rule_event" item-type="select" required="required">
                     <label>Event</label>
                     <select  required="required" multiple="multiple" name="p_gen_rule_event" class="form-control rule-setter select2" rel="gen_rule_event">
+                        
                         <option value="load" label="Load">Load</option>
                         <option value="change" label="Change">Change</option>
                         <option value="blur" label="Blur">Blur</option>
@@ -1049,7 +1092,6 @@
         
         <!-- start:SEPARATORLIST CSS INCLUDES -->
         <link rel="stylesheet" type="text/css" href="{$path}/plugins/separatorlist/igrp.separatorlist.css"/>
-        <link rel="stylesheet" type="text/css" href="{$path}/core/igrp/form/igrp.forms.css"/>
         <link rel="stylesheet" type="text/css" href="{$path}/core/igrp/table/igrp.tables.css"/>
         <link rel="stylesheet" type="text/css" href="{$path}/core/igrp/table/dataTables.bootstrap.css"/>
         <!-- end:SEPARATORLIST CSS INCLUDES -->
